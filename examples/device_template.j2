@@ -1,0 +1,144 @@
+{
+    {% for device in queryset %}
+        {% set master_device = device.virtual_chassis.master if device.virtual_chassis else device %}
+        {% if device.platform.slug | default(None) != 'junos' or master_device.device_role.slug not in ['ar', 'cr', 'crs', 'drs'] %}
+            {# Returning false explicitly disables processing interfaces, which can be a big performance win #}
+            "{{ device.name }}": false,
+        {% else %}
+            "{{ device.name }}": {
+                {% if device.primary_ip %}
+                    "ansible_host": "{{ device.primary_ip.address.ip }}",
+                {% endif %}
+
+                {% set ansible_user=device.custom_field_values.filter(field__name='management_user').first() %}
+                {% if ansible_user %}
+                    "ansible_user": "{{ ansible_user.value }}",
+                {% endif %}
+
+                {% if device.platform.slug | default(None) == 'junos' %}
+                    "ansible_connection": "netconf",
+                    "ansible_network_os": "junos",
+                {% elif device.platform.slug | default(None) == 'ios' %}
+                    "ansible_connection": "network_cli",
+                    "ansible_network_os": "ios",
+                    "ansible_become": true,
+                    "ansible_become_method": "enable",
+                {% endif %}
+
+                "status": "{{ device.get_status_display() }}",
+                "status_value": "{{ device.status }}",
+
+                "role": "{{ device.device_role.name }}",
+                "role_slug": "{{ device.device_role.slug }}",
+
+                "manufacturer": "{{ device.device_type.manufacturer.name }}",
+                "manufacturer_slug": "{{ device.device_type.manufacturer.slug }}",
+
+                "device_type": "{{ device.device_type.model }}",
+                "device_type_slug": "{{ device.device_type.slug }}",
+                "device_type_display_name": "{{ device.device_type.display_name }}",
+
+                "platform": "{{ device.platform.name | default('') }}",
+                "platform_slug": "{{ device.platform.slug | default('') }}",
+
+                "site": "{{ device.site.name }}",
+                "site_slug": "{{ device.site.slug }}",
+
+                "tenant": "{{ device.tenant.name | default('') }}",
+                "tenant_slug": "{{ device.tenant.slug |default ('') }}",
+
+                "rack_name": "{{ device.rack.name | default('') }}",
+                "rack_display_name": "{{ device.rack.display_name | default('') }}",
+
+                "rack_face": "{{ device.get_face_display() }}",
+                "rack_face_value": "{{ device.face }}",
+
+                "rack_position": {{ device.position if device.position is not none else 'null' }},
+
+                {% if device.virtual_chassis %}
+                    "virtual_chassis": {{ device.virtual_chassis.id }},
+                    "virtual_chassis_master": {{ device.virtual_chassis.master.id }},
+                    "virtual_chassis_master_name": "{{ device.virtual_chassis.master.name }}",
+                    "virtual_chassis_position": {{ device.vc_position if device.vc_position is not none else 'null' }},
+                    "virtual_chassis_priority": {{ device.vc_priority if device.vc_priority is not none else 'null' }},
+
+                    {% if device.id == device.virtual_chassis.master.id %}
+                        "virtual_chassis_members": [
+                            {% for member in device.virtual_chassis.members.exclude(id=device.id).order_by('vc_position') %}
+                                {
+                                    "device": "{{ member.name }}",
+                                    "device_type": "{{ member.device_type.model }}",
+                                    "position": {{ member.vc_position if member.vc_position is not none else 'null' }},
+                                },
+                            {% endfor %}
+                        ],
+                    {% endif %}
+                {% endif %}
+
+                "tags": [
+                    {% for tag in device.tags.order_by('slug') %}
+                        "{{ tag.name }}",
+                    {% endfor %}
+                ],
+                "tag_slugs": [
+                    {% for tag in device.tags.order_by('slug') %}
+                        "{{ tag.slug }}",
+                    {% endfor %}
+                ],
+
+                {% set ospf_area = device.custom_field_values.filter(field__name='ospf_area').first() %}
+                {% if ospf_area %}
+                    "ospf_area": "{{ ospf_area.value }}",
+                {% endif %}
+
+                "vrfs": [
+                    {% for vrf in device.vrfs %}
+                        {
+                            "name": "{{ vrf.name }}",
+                            "rd": "{{ vrf.rd }}",
+                            "description": "{{ vrf.description }}"
+                        }
+                    {% endfor %}
+                ],
+
+                "vlans": [
+                    {% for vlan in device.vlans %}
+                        {
+                            "name": "{{ vlan.name }}",
+                            "vid": {{ vlan.vid }},
+                            "description": "{{ vlan.description }}",
+                            "tags": [
+                                {% for tag in vlan.tags.order_by('slug') %}
+                                    "{{ tag.name }}",
+                                {% endfor %}
+                            ],
+                            "tag_slugs": [
+                                {% for tag in vlan.tags.order_by('slug') %}
+                                    "{{ tag.slug }}",
+                                {% endfor %}
+                            ],
+                            {% if vlan.site %}
+                                "site": "{{ vlan.site.name }}",
+                                "site_slug": "{{ vlan.site.slug }}",
+                            {% endif %}
+                            {% if vlan.group %}
+                                "group": "{{ vlan.group.name }}",
+                                "group_slug": "{{ vlan.group.slug }}",
+                            {% endif %}
+                            "status": "{{ vlan.get_status_display() }}",
+                            "status_value": "{{ vlan.status }}",
+                            {% if vlan.role %}
+                                "role": "{{ vlan.role.name }}",
+                                "role_slug": "{{ vlan.role.slug }}",
+                            {% endif %}
+                            {% if vlan.tenant %}
+                                "tenant": "{{ vlan.tenant.name }}",
+                                "tenant_slug": "{{ vlan.tenant.slug }}",
+                            {% endif %}
+                        },
+                    {% endfor %}
+                ]
+            },
+        {% endif %}
+    {% endfor %}
+}

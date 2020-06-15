@@ -1,0 +1,123 @@
+{% macro extract_endpoint(element) %}
+    {% if element.device %}
+        "device": "{{ element.device.name }}",
+        "interface": "{{ element.name }}",
+    {% endif %}
+    "circuit": {
+        {% if element.circuit %}
+            "cid": "{{ element.circuit.cid }}",
+            "description": "{{ element.circuit.description }}",
+            "status": "{{ element.circuit.get_status_display() }}",
+            {% if element.circuit.provider %}
+                "provider": {
+                    "name": "{{ element.circuit.provider.name }}",
+                    "slug": "{{ element.circuit.provider.slug }}"
+                },
+            {% endif %}
+            "type": {
+                "name": "{{ element.circuit.type.name }}",
+                "slug": "{{ element.circuit.type.slug }}"
+            }
+        {% endif %}
+    }
+{% endmacro %}
+
+{
+    "interfaces": {
+        {% for interface in queryset %}
+            "{{ interface.name }}": {
+                "name": "{{ interface.name }}",
+                "physical_device": "{{ interface.device.name }}",
+                "enabled": {{ "true" if interface.enabled else "false" }},
+                "mtu": {{ interface.mtu or "null" }},
+                "mac_address": "{{ interface.mac_address or "" }}",
+                "description": "{{ interface.description }}",
+
+                "tags": [
+                    {% for tag in interface.tags.order_by('slug') %}
+                        "{{ tag.name }}",
+                    {% endfor %}
+                ],
+                "tag_slugs": [
+                    {% for tag in interface.tags.order_by('slug') %}
+                        "{{ tag.slug }}",
+                    {% endfor %}
+                ],
+
+                "form_factor": "{{ interface.get_type_display() }}",
+                "form_factor_value": "{{ interface.type }}",
+                {% if interface.connection_status is not none %}
+                    "connection_status": "{{ interface.get_connection_status_display() }}",
+                    "connection_status_value": {{ 'true' if interface.connection_status else 'false' }},
+                {% endif %}
+                "mode": "{{ interface.get_mode_display() }}",
+                "mode_value": "{{ interface.mode }}",
+
+                {% if interface.lag is not none %}
+                    "lag": "{{ interface.lag.name }}",
+                {% endif %}
+
+                "ip_addresses": [
+                    {% for ip_address in interface.ip_addresses.all() %}
+                        {
+                            "address": "{{ ip_address.address }}",
+                            "family": "IPv{{ ip_address.family }}",
+                            "family_value": {{ ip_address.family }},
+                            "description": "{{ ip_address.description }}",
+                            {% if ip_address.vrf is not none %}
+                                "vrf": "{{ ip_address.vrf.name }}",
+                                "vrf_rd": "{{ ip_address.vrf.rd }}",
+                            {% endif %}
+                            "status": "{{ ip_address.get_status_display() }}",
+                            "status_value": "{{ ip_address.status }}",
+                            "role": "{{ ip_address.get_role_display() }}",
+                            "role_value": "{{ ip_address.role }}",
+
+                            "tags": [
+                                {% for tag in ip_address.tags.order_by('slug') %}
+                                    "{{ tag.name }}",
+                                {% endfor %}
+                            ],
+                            "tag_slugs": [
+                                {% for tag in ip_address.tags.order_by('slug') %}
+                                    "{{ tag.slug }}",
+                                {% endfor %}
+                            ]
+                        },
+                    {% endfor %}
+                ],
+
+                {% if interface.untagged_vlan is not none %}
+                    "untagged_vlan": {
+                        "name": "{{ interface.untagged_vlan.name }}",
+                        "vid": {{ interface.untagged_vlan.vid }}"
+                    },
+                {% endif %}
+
+                "tagged_vlans": [
+                    {% for vlan in interface.tagged_vlans.all() %}
+                        {
+                            "name": "{{ vlan.name }}",
+                            "vid": {{ vlan.vid }}"
+                        },
+                    {% endfor %}
+                ],
+
+                "connected_endpoint": {
+                    {% if interface.connected_endpoint %}
+                        {{ extract_endpoint(interface.connected_endpoint) }},
+                        "via": [
+                            {% for item in interface.trace_elements.all() %}
+                                {% if not loop.first and not loop.last and item.element_type != 'cable' %}
+                                    {
+                                        {{ extract_endpoint(item.element) }}
+                                    },
+                                {% endif %}
+                            {% endfor %}
+                        ]
+                    {% endif %}
+                }
+            },
+        {% endfor %}
+    }
+}

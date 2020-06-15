@@ -1,0 +1,7 @@
+<script type="application/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        $('td.diff_header + td:has(span.diff_add)').prev().addClass('diff_add');
+        $('td.diff_header + td:has(span.diff_sub)').prev().addClass('diff_sub');
+        $('td.diff_header + td:has(span.diff_chg)').prev().addClass('diff_chg');
+    });
+</script>

@@ -1,0 +1,73 @@
+{% load helpers %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'netbox_gitlab/style.css' %}">
+
+{# Create the dialog boxes #}
+{% for name,changes in interface_changes.items %}
+    {% if changes %}
+        <div id="interface_{{ name }}_changes_dialog">
+            {{ changes.diff }}
+        </div>
+    {% endif %}
+{% endfor %}
+
+{% include 'netbox_gitlab/diff_highlight_line.html' %}
+
+<script type="application/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        // DOM and jQuery are loaded, so we can use them
+        let interfaces_table = $('#interfaces_table');
+
+        // Add column to interfaces table with GitLab heading and question-mark placeholders
+        interfaces_table.find('> thead > tr th:first-child')
+            .after('<th><i class="fa fa-gitlab" aria-hidden="true"></i></th>');
+        interfaces_table.find('tr.interface > td:first-child')
+            .after('<td class="gitlab">' +
+                '<i class="fa fa-question-circle" aria-hidden="true"></i>' +
+                '</td>');
+        interfaces_table.find('tr.ipaddresses > td:first-child')
+            .after('<td></td>');
+
+        // Fill in the information for the interfaces we know about
+        {% for name,changes in interface_changes.items %}
+            {% if changes %}
+                // Prepare the dialog
+                $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog({
+                    autoOpen: false,
+                    modal: true,
+                    title: "Changes of {{ name }}",
+                    width: 1000,
+                });
+
+                {% if changes.gitlab_empty %}
+                    $(document.getElementById('interface_{{ name }}')).find('td.gitlab')
+                        .html('<i class="fa fa-question-circle" style="cursor: pointer" aria-hidden="true" ' +
+                            'title="Changes:&#13;-&nbsp;{{ changes.fields | join:'&#13;-&nbsp;' }}"></i>')
+                        .click(function () {
+                            $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog('open');
+                        });
+                {% else %}
+                    $(document.getElementById('interface_{{ name }}')).find('td.gitlab')
+                        .html('<i class="fa fa-times" style="cursor: pointer; color: darkred" aria-hidden="true" ' +
+                            'title="Changes:&#13;-&nbsp;{{ changes.fields | join:'&#13;-&nbsp;' }}"></i>')
+                        .click(function () {
+                            $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog('open');
+                        });
+                {% endif %}
+            {% else %}
+                $(document.getElementById('interface_{{ name }}')).find('td.gitlab').html(
+                    '<i class="fa fa-check" style="opacity: 0.2; color: darkgreen" aria-hidden="true"></i>');
+            {% endif %}
+        {% endfor %}
+
+        {% if perms.netbox_gitlab.export_interface %}
+            // Add button at the bottom
+            $("#interfaces_table ~ .panel-footer").prepend(
+                '<button type="submit" name="_gitlab_export" class="btn btn-info btn-xs"' +
+                '        formaction="{% url 'plugins:netbox_gitlab:export-interfaces' %}">\n' +
+                '    <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span> GitLab\n' +
+                '</button>');
+        {% endif %}
+    })
+</script>

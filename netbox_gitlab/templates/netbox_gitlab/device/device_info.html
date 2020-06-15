@@ -1,0 +1,59 @@
+{% load helpers %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'netbox_gitlab/style.css' %}">
+
+{# Create the dialog boxes #}
+{% if device_changes %}
+    <div id="device_changes_dialog">
+        {{ device_changes.diff }}
+    </div>
+
+    <script type="application/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            // Prepare the dialog
+            $(document.getElementById('device_changes_dialog')).dialog({
+                autoOpen: false,
+                modal: true,
+                title: "Device changes",
+                width: 1000,
+            });
+        })
+    </script>
+
+    {% include 'netbox_gitlab/diff_highlight_line.html' %}
+{% endif %}
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <strong>GitLab export</strong>
+    </div>
+
+    <div class="panel-body">
+        {% if empty %}
+            <i class="fa fa-question-circle" style="cursor: pointer" aria-hidden="true"
+               onclick="$(document.getElementById('device_changes_dialog')).dialog('open');"></i>
+            Device not in GitLab
+        {% elif device_changes %}
+            <i class="fa fa-times" style="cursor: pointer; color: darkred" aria-hidden="true"
+               onclick="$(document.getElementById('device_changes_dialog')).dialog('open');"></i>
+            Changed fields:
+            <ul>
+                {% for field in device_changes.fields %}
+                    <li>{{ field }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <i class="fa fa-check" style="color: darkgreen" aria-hidden="true"></i>
+            Export is in sync.
+        {% endif %}
+    </div>
+
+    {% if perms.netbox_gitlab.export_device %}
+        <div class="panel-footer text-right noprint">
+            <a href="{% url 'plugins:netbox_gitlab:export-device' device_id=object.id %}" class="btn btn-info btn-xs">
+                <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span> GitLab
+            </a>
+        </div>
+    {% endif %}
+</div>
