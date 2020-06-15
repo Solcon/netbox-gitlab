@@ -8,6 +8,8 @@ This plugin in compatible with [NetBox](https://netbox.readthedocs.org/) 2.8 and
 
 First, add `netbox_gitlab` to your `/opt/netbox/local_requirements.txt` file. Create it if it doesn't exist.
 
+If you are using a local version of the plugin, for example for development, add `-e /opt/path/to/plugin` instead.
+
 Then enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`, like:
 
 ```python
@@ -35,9 +37,17 @@ necessary. Don't forget to run `sudo systemctl restart netbox netbox-rq` like `u
 
 ## Usage
 
-This plugin uses NetBox export templates to generate the files that are put into the git repository. By default it looks for export templates called `GitLab` for devices and interfaces. The output of these templates is parsed as YAML, but JSON output is also accepted (as all valid JSON is also valid YAML). Generating JSON can be more convenient because of the more relaxed parsing of indentation.
+This plugin uses NetBox export templates to generate the files that are put into the git repository. The output of these templates is parsed as YAML, but JSON output is also accepted (as all valid JSON is also valid YAML). Generating JSON can be more convenient because of the more relaxed parsing of indentation.
 
-The output sent to GitLab is always YAML with all the empty variables omitted. This makes it easier when writing export templates while still keeping the output compact. This in turn helps to keep Ansible a bit faster by reducing the time spent on parsing the YAML. 
+By default this plugin looks for these export templates:
+
+| Content type     | Name               | Purpose                                               |
+|------------------|--------------------|-------------------------------------------------------|
+| dcim > device    | Ansible Inventory  | A single file listing all devices                     |
+| dcim > device    | Ansible Device     | One file per device with device-level configuration   |
+| dcim > interface | Ansible Interfaces | One file per device with its interface configurations |
+ 
+The output sent to GitLab for the inventory is exactly what the export template produces. The output sent to GitLab for device and interface configurations is always YAML with all the empty variables omitted. This makes it easier when writing export templates while still keeping the output compact. This in turn helps to keep Ansible a bit faster by reducing the time spent on parsing the YAML. 
 
 For the devices export template this plugin expects the generated YAML/JSON to be a mapping with the device name as the key. When a device is part of a virtual chassis all members of the virtual chassis will be included.
 
