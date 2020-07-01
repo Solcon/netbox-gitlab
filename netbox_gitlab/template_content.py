@@ -8,7 +8,7 @@ from ruamel import yaml
 
 from dcim.models import Device
 from extras.plugins import PluginTemplateExtension
-from netbox_gitlab.utils import (GitLabDumper, GitLabMixin, expand_virtual_chassis, extract_interfaces,
+from netbox_gitlab.utils import (GitLabDumper, GitLabMixin, dict_changes, expand_virtual_chassis, extract_interfaces,
                                  generate_device_interfaces, generate_devices)
 
 
@@ -56,18 +56,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
             gitlab_interface = gitlab_interfaces.get(name, {})
             netbox_interface = netbox_interfaces.get(name, {})
 
-            changes = []
-            for key in sorted(set(netbox_interface.keys()) | set(gitlab_interface.keys())):
-                gitlab_value = gitlab_interface.get(key)
-                netbox_value = netbox_interface.get(key)
-
-                # Don't bother if both values evaluate to False
-                if not netbox_value and not gitlab_value:
-                    continue
-
-                if netbox_value != gitlab_value:
-                    changes.append(key)
-
+            changes = dict_changes(netbox_interface, gitlab_interface)
             if changes:
                 gitlab_yaml = yaml.dump(gitlab_interface, Dumper=GitLabDumper, default_flow_style=False)
                 netbox_yaml = yaml.dump(netbox_interface, Dumper=GitLabDumper, default_flow_style=False)
@@ -119,18 +108,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
 
         differ = HtmlDiff(tabsize=2)
 
-        changes = []
-        for key in sorted(set(gitlab_device.keys()) | set(netbox_device.keys())):
-            netbox_value = netbox_device.get(key)
-            gitlab_value = gitlab_device.get(key)
-
-            # Don't bother if both values evaluate to False
-            if not netbox_value and not gitlab_value:
-                continue
-
-            if netbox_value != gitlab_value:
-                changes.append(key)
-
+        changes = dict_changes(gitlab_device, netbox_device)
         if changes:
             gitlab_yaml = yaml.dump(gitlab_devices, Dumper=GitLabDumper, default_flow_style=False)
             netbox_yaml = yaml.dump(netbox_devices, Dumper=GitLabDumper, default_flow_style=False)

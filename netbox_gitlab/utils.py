@@ -359,3 +359,25 @@ class GitLabCommitMixin(GitLabMixin):
                     raise
 
         return len(gitlab_data['actions']), merge_req
+
+
+def dict_changes(dict1: dict, dict2: dict) -> list:
+    changes = []
+    for key in sorted(set(dict1.keys()) | set(dict2.keys())):
+        dict1_value = dict1.get(key)
+        dict2_value = dict1.get(key)
+
+        # Don't bother if both values evaluate to False
+        if not dict2_value and not dict1_value:
+            continue
+
+        if isinstance(dict1_value, dict) and isinstance(dict2_value, dict):
+            # Both are dicts, dive in
+            sub_changes = dict_changes(dict1_value, dict2_value)
+            for value in sub_changes:
+                changes.append(f'{key}.{value}')
+
+        elif dict2_value != dict1_value:
+            changes.append(key)
+
+    return changes
