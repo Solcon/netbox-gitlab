@@ -16,6 +16,33 @@ class PermissionSupport(models.Model):
         )
 
 
+class TraceElementQuerySet(models.QuerySet):
+    def _filter_or_exclude(self, negate, *args, **kwargs):
+        # Handle filtering on element
+        if 'element' in kwargs:
+            element = kwargs.pop('element')
+            if element is None:
+                kwargs['_cable'] = None
+                kwargs['_interface'] = None
+                kwargs['_front_port'] = None
+                kwargs['_rear_port'] = None
+                kwargs['_circuit_termination'] = None
+            elif isinstance(element, Cable):
+                kwargs['_cable'] = element
+            elif isinstance(element, Interface):
+                kwargs['_interface'] = element
+            elif isinstance(element, FrontPort):
+                kwargs['_front_port'] = element
+            elif isinstance(element, RearPort):
+                kwargs['_rear_port'] = element
+            elif isinstance(element, CircuitTermination):
+                kwargs['_circuit_termination'] = element
+            else:
+                raise ValueError("unsupported element type")
+
+        return super()._filter_or_exclude(negate, *args, **kwargs)
+
+
 class TraceElement(models.Model):
     from_interface = models.ForeignKey(
         verbose_name=_('from interface'),
@@ -62,6 +89,8 @@ class TraceElement(models.Model):
         blank=True,
         null=True,
     )
+
+    objects = TraceElementQuerySet.as_manager()
 
     class Meta:
         ordering = ('from_interface_id', 'step')

@@ -1,12 +1,28 @@
 import logging
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
-from dcim.models import Cable, Interface
+from circuits.models import CircuitTermination
+from dcim.models import Cable, FrontPort, Interface, RearPort
+from netbox_gitlab.models import TraceElement
 from netbox_gitlab.utils import update_trace_cache
 
 logger = logging.getLogger('netbox_gitlab')
+
+
+@receiver(pre_delete, sender=Cable)
+@receiver(pre_delete, sender=Interface)
+@receiver(pre_delete, sender=FrontPort)
+@receiver(pre_delete, sender=RearPort)
+@receiver(pre_delete, sender=CircuitTermination)
+def delete_affected_traces(instance, **_kwargs):
+    """
+    When an element is deleted then delete all traces that contain it. They can be re-generated later.
+    """
+    for trace_element in TraceElement.objects.filter(element=instance):
+        # Delete all trace elements on this path
+        TraceElement.objects.filter(from_interface=trace_element.from_interface).delete()
 
 
 @receiver(post_save, sender=Cable)
