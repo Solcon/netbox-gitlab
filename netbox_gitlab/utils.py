@@ -174,7 +174,8 @@ def update_trace_cache(interface: Interface):
 
 
 def generate_missing_traces(interfaces: QuerySet):
-    for interface in interfaces.exclude(pk__in=TraceElement.objects.values_list('from_interface')):
+    existing = list(TraceElement.objects.values_list('from_interface', flat=True))
+    for interface in interfaces.exclude(pk__in=existing):
         update_trace_cache(interface)
 
 
