@@ -5,7 +5,7 @@
 
 {# Create the dialog boxes #}
 {% if device_changes %}
-    <div id="device_changes_dialog">
+    <div class="gitlab_diff" style="display:none;" id="gitlab_device_changes_dialog">
         {{ device_changes.diff }}
     </div>
 
@@ -32,11 +32,11 @@
     <div class="panel-body">
         {% if empty %}
             <i class="fa fa-question-circle" style="cursor: pointer" aria-hidden="true"
-               onclick="$(document.getElementById('device_changes_dialog')).dialog('open');"></i>
+               onclick="$(document.getElementById('gitlab_device_changes_dialog')).dialog('open');"></i>
             Device not in GitLab
         {% elif device_changes %}
             <i class="fa fa-times" style="cursor: pointer; color: darkred" aria-hidden="true"
-               onclick="$(document.getElementById('device_changes_dialog')).dialog('open');"></i>
+               onclick="$(document.getElementById('gitlab_device_changes_dialog')).dialog('open');"></i>
             Changed fields:
             <ul>
                 {% for field in device_changes.fields %}

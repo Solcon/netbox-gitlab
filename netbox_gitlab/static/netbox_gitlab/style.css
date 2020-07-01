@@ -2,48 +2,48 @@ td.gitlab {
     text-align: center;
 }
 
-table.diff {
+div.gitlab_diff table.diff {
     width: 100%;
 }
 
-table.diff td {
+div.gitlab_diff table.diff td {
     font-family: "JetBrains Mono", Menlo, Consolas, "Andale Mono", "Lucida Console", monospace;
     padding-left: 10px;
 }
 
-th.diff_next,
-td.diff_next {
+div.gitlab_diff th.diff_next,
+div.gitlab_diff td.diff_next {
     display: none;
 }
 
-th.diff_header {
+div.gitlab_diff th.diff_header {
     padding-left: 4px;
 }
 
-td.diff_header {
+div.gitlab_diff td.diff_header {
     color: lightgray;
 }
 
-span.diff_add,
-span.diff_sub,
-span.diff_chg {
+div.gitlab_diff span.diff_add,
+div.gitlab_diff span.diff_sub,
+div.gitlab_diff span.diff_chg {
     border-radius: 8px;
     padding: 2px 3px;
     margin: -2px -1px;
     background-color: #f0f0f0;
 }
 
-span.diff_add,
-td.diff_header.diff_add {
+div.gitlab_diff span.diff_add,
+div.gitlab_diff td.diff_header.diff_add {
     color: green;
 }
 
-span.diff_sub,
-td.diff_header.diff_sub {
+div.gitlab_diff span.diff_sub,
+div.gitlab_diff td.diff_header.diff_sub {
     color: #cc0000;
 }
 
-span.diff_chg,
-td.diff_header.diff_chg {
+div.gitlab_diff span.diff_chg,
+div.gitlab_diff td.diff_header.diff_chg {
     color: darkorange;
 }

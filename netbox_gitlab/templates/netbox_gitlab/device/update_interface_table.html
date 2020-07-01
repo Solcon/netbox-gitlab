@@ -6,7 +6,7 @@
 {# Create the dialog boxes #}
 {% for name,changes in interface_changes.items %}
     {% if changes %}
-        <div id="interface_{{ name }}_changes_dialog">
+        <div class="gitlab_diff" style="display:none;" id="gitlab_interface_{{ name }}_changes_dialog">
             {{ changes.diff }}
         </div>
     {% endif %}
@@ -33,7 +33,7 @@
         {% for name,changes in interface_changes.items %}
             {% if changes %}
                 // Prepare the dialog
-                $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog({
+                $(document.getElementById('gitlab_interface_{{ name }}_changes_dialog')).dialog({
                     autoOpen: false,
                     modal: true,
                     title: "Changes of {{ name }}",
@@ -45,14 +45,14 @@
                         .html('<i class="fa fa-question-circle" style="cursor: pointer" aria-hidden="true" ' +
                             'title="Changes:&#13;-&nbsp;{{ changes.fields | join:'&#13;-&nbsp;' }}"></i>')
                         .click(function () {
-                            $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog('open');
+                            $(document.getElementById('gitlab_interface_{{ name }}_changes_dialog')).dialog('open');
                         });
                 {% else %}
                     $(document.getElementById('interface_{{ name }}')).find('td.gitlab')
                         .html('<i class="fa fa-times" style="cursor: pointer; color: darkred" aria-hidden="true" ' +
                             'title="Changes:&#13;-&nbsp;{{ changes.fields | join:'&#13;-&nbsp;' }}"></i>')
                         .click(function () {
-                            $(document.getElementById('interface_{{ name }}_changes_dialog')).dialog('open');
+                            $(document.getElementById('gitlab_interface_{{ name }}_changes_dialog')).dialog('open');
                         });
                 {% endif %}
             {% else %}
