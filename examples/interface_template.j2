@@ -90,7 +90,7 @@
                 {% if interface.untagged_vlan is not none %}
                     "untagged_vlan": {
                         "name": "{{ interface.untagged_vlan.name }}",
-                        "vid": {{ interface.untagged_vlan.vid }}"
+                        "vid": {{ interface.untagged_vlan.vid }}
                     },
                 {% endif %}
 
@@ -98,7 +98,7 @@
                     {% for vlan in interface.tagged_vlans.all() %}
                         {
                             "name": "{{ vlan.name }}",
-                            "vid": {{ vlan.vid }}"
+                            "vid": {{ vlan.vid }}
                         },
                     {% endfor %}
                 ],
