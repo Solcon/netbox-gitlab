@@ -26,7 +26,6 @@
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
     <option name="TEMPLATE_FOLDERS">
       <list>
-        <option value="$MODULE_DIR$/../ntc-netbox-plugin-onboarding/netbox_onboarding/templates" />
         <option value="$MODULE_DIR$/netbox_gitlab/templates" />
       </list>
     </option>
