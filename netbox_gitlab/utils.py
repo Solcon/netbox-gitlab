@@ -365,10 +365,10 @@ def dict_changes(dict1: dict, dict2: dict) -> list:
     changes = []
     for key in sorted(set(dict1.keys()) | set(dict2.keys())):
         dict1_value = dict1.get(key)
-        dict2_value = dict1.get(key)
+        dict2_value = dict2.get(key)
 
         # Don't bother if both values evaluate to False
-        if not dict2_value and not dict1_value:
+        if not dict1_value and not dict2_value:
             continue
 
         if isinstance(dict1_value, dict) and isinstance(dict2_value, dict):
@@ -377,7 +377,7 @@ def dict_changes(dict1: dict, dict2: dict) -> list:
             for value in sub_changes:
                 changes.append(f'{key}.{value}')
 
-        elif dict2_value != dict1_value:
+        elif dict1_value != dict2_value:
             changes.append(key)
 
     return changes
