@@ -28,8 +28,10 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
             return redirect('home')
 
         branch = self.config['master_branch']
-        gitlab_inventory = self.get_gitlab_inventory(branch)
+        gitlab_inventory = self.get_gitlab_inventory(branch) or ''
         netbox_inventory = generate_inventory()
+        if not netbox_inventory:
+            return redirect('home')
 
         diff = make_diff(
             gitlab_data=gitlab_inventory,
