@@ -1,9 +1,9 @@
 import hashlib
 import itertools
-from collections import OrderedDict
 from difflib import HtmlDiff
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+import yaml
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
@@ -12,8 +12,7 @@ from django.utils.safestring import mark_safe
 from gitlab import Gitlab, GitlabCreateError, GitlabError, GitlabGetError, GitlabHttpError
 from gitlab.utils import clean_str_id
 from gitlab.v4.objects import ProjectMergeRequest
-from ruamel import yaml
-from ruamel.yaml import SafeDumper, SafeLoader
+from yaml import SafeDumper, SafeLoader
 
 from dcim.models import Device, Interface
 from extras.models import ExportTemplate
@@ -27,13 +26,6 @@ class GitLabDumper(SafeDumper):
 # noinspection PyAbstractClass
 class GitLabLoader(SafeLoader):
     pass
-
-
-GitLabDumper.add_representer(OrderedDict,
-                             lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
-
-GitLabLoader.add_constructor('tag:yaml.org,2002:map',
-                             lambda loader, node: OrderedDict(loader.construct_pairs(node)))
 
 
 def clean_value(value):
@@ -54,7 +46,7 @@ def clean_value(value):
 
 
 def clean_dict(data: Dict[str, Any]) -> dict:
-    out = OrderedDict()
+    out = {}
 
     for key, value in data.items():
         value = clean_value(value)
@@ -192,18 +184,18 @@ def make_diff(gitlab_data: str, netbox_data: str, differ: HtmlDiff = None) -> st
 
 def make_diffs(devices: Iterable[Device], gitlab_data: Dict[str, Any], netbox_data: Dict[str, Any]) -> Dict[str, str]:
     differ = HtmlDiff(tabsize=2)
-    diffs = OrderedDict()
+    diffs = {}
     for device in devices:
-        device_interfaces = gitlab_data[device.name]
+        gitlab_interfaces = gitlab_data[device.name]
         netbox_interfaces = netbox_data[device.name]
 
-        if not device_interfaces and not netbox_interfaces:
+        if not gitlab_interfaces and not netbox_interfaces:
             continue
 
-        old_fragment = yaml.dump(device_interfaces, Dumper=GitLabDumper, default_flow_style=False)
+        old_fragment = yaml.dump(gitlab_interfaces, Dumper=GitLabDumper, default_flow_style=False)
         new_fragment = yaml.dump(netbox_interfaces, Dumper=GitLabDumper, default_flow_style=False)
-        diffs[device.name] = make_diff(netbox_data=old_fragment,
-                                       gitlab_data=new_fragment,
+        diffs[device.name] = make_diff(gitlab_data=old_fragment,
+                                       netbox_data=new_fragment,
                                        differ=differ)
 
     return diffs

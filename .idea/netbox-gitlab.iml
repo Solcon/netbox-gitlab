@@ -18,9 +18,9 @@
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/netbox_gitlab.egg-info" />
     </content>
-    <orderEntry type="jdk" jdkName="Solcon Netbox dev" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (netbox-labdro3)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="netbox_live" />
+    <orderEntry type="module" module-name="netbox-labdro3" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

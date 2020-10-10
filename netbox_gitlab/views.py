@@ -1,6 +1,7 @@
 import copy
-from collections import OrderedDict
 
+import yaml
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core import signing
@@ -9,7 +10,6 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.safestring import mark_safe
 from django.views import View
-from ruamel import yaml
 
 from dcim.models import Device, Interface
 from netbox_gitlab.forms import GitLabCommitDeviceForm, GitLabCommitInterfacesForm, GitLabCommitInventoryForm
@@ -113,7 +113,8 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
         diffs = make_diffs(devices, gitlab_devices, netbox_devices)
 
         # Construct the new contents of the whole file
-        new_gitlab_data = {name: yaml.dump(netbox_device, Dumper=GitLabDumper, default_flow_style=False)
+        new_gitlab_data = {name: yaml.dump(netbox_device,
+                                           Dumper=GitLabDumper, sort_keys=False, default_flow_style=False)
                            for name, netbox_device in netbox_devices.items()}
 
         # Collect all the branches we can push to
@@ -176,11 +177,11 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
 class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLMixin, View):
     permission_required = 'netbox_gitlab.export_interface'
 
-    def get(self, request) -> HttpResponse:
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def get(self, request, device_id: int) -> HttpResponse:
         return redirect('home')
 
-    def show_diff(self, request, form: GitLabCommitInterfacesForm = None) -> HttpResponse:
-        device_id = request.POST['device']
+    def show_diff(self, request, device_id: int, form: GitLabCommitInterfacesForm = None) -> HttpResponse:
         interface_ids = request.POST.getlist('pk')
 
         # Get all the relevant devices
@@ -188,7 +189,7 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
         master, devices = expand_virtual_chassis(base_device)
 
         # Get all the relevant interfaces
-        interfaces = Interface.objects.filter(pk__in=interface_ids, device__in=devices)
+        interfaces = Interface.objects.filter(pk__in=interface_ids, device__in=devices).order_by('_name')
         if not interfaces:
             messages.error(request, "No interfaces were selected for export")
             return redirect(self.get_return_url(request, base_device))
@@ -207,14 +208,14 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
             return redirect(self.get_return_url(request, base_device))
 
         # Extract the interfaces we are going to change from the GitLab data for the diff
-        orig_gitlab_interfaces = {device_name: OrderedDict(
-            [(if_name, if_data)
-             for if_name, if_data in device_interfaces.items()
-             if if_name in netbox_plain_interfaces]
-        ) for device_name, device_interfaces in gitlab_interfaces.items()}
+        orig_gitlab_interfaces = {device_name: {
+            if_name: if_data
+            for if_name, if_data in device_interfaces.items()
+            if if_name in netbox_plain_interfaces
+        } for device_name, device_interfaces in gitlab_interfaces.items()}
 
         # Update GitLab data with new NetBox data
-        netbox_device_interfaces = {device.name: OrderedDict() for device in devices}
+        netbox_device_interfaces = {device.name: {} for device in devices}
         for if_name, if_data in netbox_plain_interfaces.items():
             interface = interface_lookup[if_name]
             gitlab_interfaces[master.name][if_name] = if_data
@@ -224,8 +225,12 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
             netbox_device_interfaces[interface.device.name][if_name] = if_data
 
         # Construct the new contents of the whole file
-        new_gitlab_data = {name: yaml.dump(netbox_interfaces, Dumper=GitLabDumper, default_flow_style=False)
-                           for name, netbox_interfaces in gitlab_data.items()}
+        config = settings.PLUGINS_CONFIG['netbox_gitlab']
+        key = config['interfaces_key']
+
+        new_gitlab_data = {name: yaml.dump({key: netbox_interfaces},
+                                           Dumper=GitLabDumper, sort_keys=False, default_flow_style=False)
+                           for name, netbox_interfaces in gitlab_interfaces.items()}
         update = signing.dumps(new_gitlab_data, salt='netbox_gitlab.interfaces', compress=True)
 
         if not form:
@@ -263,10 +268,10 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
                 new_gitlab_data = signing.loads(request.POST['update'], salt='netbox_gitlab.interfaces', max_age=900)
             except SignatureExpired:
                 messages.warning(request, "Update expired, please submit again")
-                return self.show_diff(request, form)
+                return self.show_diff(request, device_id, form)
         else:
             # Invalid form data, show form again
-            return self.show_diff(request, form)
+            return self.show_diff(request, device_id, form)
 
         # We appear to have new gitlab data!
         for device_name, content in new_gitlab_data.items():
@@ -289,15 +294,15 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
 
         return redirect(self.get_return_url(request, base_device))
 
-    def post(self, request) -> HttpResponse:
+    def post(self, request, device_id: int) -> HttpResponse:
         # If we don't have a GitLab project we can't do anything
         if not self.project:
             messages.error(self.request, f"GitLab server error: {self.gitlab_error}")
-            device = Device.objects.filter(pk=request.POST.get('device_id')).first()
+            device = Device.objects.filter(pk=device_id).first()
             return redirect(self.get_return_url(request, device))
 
         if 'update' in request.POST:
             # If we have `update` then the form was submitted
             return self.do_commit(request)
         else:
-            return self.show_diff(request)
+            return self.show_diff(request, device_id)

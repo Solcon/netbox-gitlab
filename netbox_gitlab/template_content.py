@@ -1,10 +1,10 @@
 from difflib import HtmlDiff
 
+import yaml
 from django.contrib.auth.context_processors import PermWrapper
 from django.http import HttpRequest
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
-from ruamel import yaml
 
 from dcim.models import Device
 from extras.plugins import PluginTemplateExtension
