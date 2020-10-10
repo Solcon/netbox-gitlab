@@ -2,7 +2,8 @@
 # Changes will be overwritten
 
 {% set manageable_devices = queryset
-    .filter(device_role__slug__in=['ar', 'cr', 'crs', 'drs'])
+    .filter(device_role__slug__in=['ar', 'cr', 'crs', 'drs', 'oob'])
+    .exclude(site__slug__in=['labdro3'])
     .exclude(primary_ip4=None, primary_ip6=None)
     .order_by('site__slug', 'name')
 -%}

@@ -32,6 +32,9 @@
                 "mtu": {{ interface.mtu or "null" }},
                 "mac_address": "{{ interface.mac_address or "" }}",
                 "description": "{{ interface.description }}",
+                {% if interface.mgmt_only %}
+                    "mgmt_only": true,
+                {% endif %}
 
                 "tags": [
                     {% for tag in interface.tags.order_by('slug') %}

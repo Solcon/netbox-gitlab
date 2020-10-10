@@ -1,7 +1,7 @@
 {
     {% for device in queryset %}
         {% set master_device = device.virtual_chassis.master if device.virtual_chassis else device %}
-        {% if device.platform.slug | default(None) != 'junos' or master_device.device_role.slug not in ['ar', 'cr', 'crs', 'drs'] %}
+        {% if master_device.platform.slug|default('') not in ['ios', 'junos'] or master_device.device_role.slug not in ['ar', 'cr', 'crs', 'drs', 'oob'] %}
             {# Returning false explicitly disables processing interfaces, which can be a big performance win #}
             "{{ device.name }}": false,
         {% else %}
