@@ -79,6 +79,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
 
         return self.render('netbox_gitlab/device/update_interface_table.html', {
             'interface_changes': interface_changes,
+            'device': devices[0],
             'perms': PermWrapper(self.request.user),
         })
 

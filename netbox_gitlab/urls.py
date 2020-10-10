@@ -9,7 +9,7 @@ urlpatterns = [
     path(route='export-device/<int:device_id>/',
          view=ExportDeviceView.as_view(),
          name='export-device'),
-    path(route='export-interfaces/',
+    path(route='export-interfaces/<int:device_id>/',
          view=ExportInterfacesView.as_view(),
          name='export-interfaces'),
 ]

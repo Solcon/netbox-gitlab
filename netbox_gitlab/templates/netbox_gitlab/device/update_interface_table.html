@@ -65,7 +65,7 @@
             // Add button at the bottom
             $("#interfaces_table ~ .panel-footer").prepend(
                 '<button type="submit" name="_gitlab_export" class="btn btn-info btn-xs"' +
-                '        formaction="{% url 'plugins:netbox_gitlab:export-interfaces' %}">\n' +
+                '        formaction="{% url 'plugins:netbox_gitlab:export-interfaces' device_id=device.id %}">\n' +
                 '    <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span> GitLab\n' +
                 '</button>');
         {% endif %}
