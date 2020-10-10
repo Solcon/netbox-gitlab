@@ -94,7 +94,9 @@ class TraceElement(models.Model):
 
     class Meta:
         ordering = ('from_interface_id', 'step')
-        unique_together = ('from_interface', 'step')
+        unique_together = [
+            ('from_interface', 'step'),
+        ]
         verbose_name = _('trace element')
         verbose_name_plural = _('trace elements')
 
