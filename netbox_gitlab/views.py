@@ -191,14 +191,17 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
         # Get all the relevant interfaces
         interfaces = Interface.objects.filter(pk__in=interface_ids, device__in=devices).order_by('_name')
         if not interfaces:
-            messages.error(request, "No interfaces were selected for export")
-            return redirect(self.get_return_url(request, base_device))
+            messages.warning(request, "No interfaces were selected for export, regenerating whole file")
+            interfaces = Interface.objects.filter(device__in=devices).order_by('_name')
+            regenerate = True
+        else:
+            regenerate = False
 
         interface_lookup = {interface.name: interface for interface in interfaces}
 
         # Prepare a new update
-        branch = self.config['master_branch']
-        gitlab_data = {device.name: self.get_gitlab_interfaces(branch, device) for device in devices}
+        master_branch = self.config['master_branch']
+        gitlab_data = {device.name: self.get_gitlab_interfaces(master_branch, device) for device in devices}
         gitlab_interfaces = {device_name: extract_interfaces(device_interfaces)
                              for device_name, device_interfaces in gitlab_data.items()}
 
@@ -211,8 +214,11 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
         orig_gitlab_interfaces = {device_name: {
             if_name: if_data
             for if_name, if_data in device_interfaces.items()
-            if if_name in netbox_plain_interfaces
+            if regenerate or if_name in netbox_plain_interfaces
         } for device_name, device_interfaces in gitlab_interfaces.items()}
+
+        if regenerate:
+            gitlab_interfaces = {device.name: {} for device in devices}
 
         # Update GitLab data with new NetBox data
         netbox_device_interfaces = {device.name: {} for device in devices}
@@ -271,6 +277,7 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
                 return self.show_diff(request, device_id, form)
         else:
             # Invalid form data, show form again
+            messages.warning(request, "Form error, please submit again")
             return self.show_diff(request, device_id, form)
 
         # We appear to have new gitlab data!

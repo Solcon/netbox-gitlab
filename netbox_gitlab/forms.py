@@ -22,4 +22,4 @@ class GitLabCommitDeviceForm(GitLabCommitForm):
 
 class GitLabCommitInterfacesForm(GitLabCommitForm):
     device = forms.ModelChoiceField(queryset=Device.objects.all())
-    pk = forms.ModelMultipleChoiceField(queryset=Interface.objects.all())
+    pk = forms.ModelMultipleChoiceField(queryset=Interface.objects.all(), required=False)
