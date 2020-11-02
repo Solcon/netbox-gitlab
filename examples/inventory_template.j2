@@ -7,6 +7,12 @@
     .exclude(primary_ip4=None, primary_ip6=None)
     .order_by('site__slug', 'name')
 -%}
+{% set extra_tags = manageable_devices
+    .filter(tags__slug__startswith='role-')
+    .values_list('tags__slug', flat=True)
+    .order_by('tags__slug')
+    .distinct()
+-%}
 {% set manageable_device_names = manageable_devices.values_list('name', flat=True) -%}
 {% set member_devices = manageable_devices
     .values_list('virtual_chassis__members__name', flat=True)
@@ -42,6 +48,14 @@
 {% for group, devices in manageable_devices | selectattr('device_role') | groupby('device_role.slug') -%}
 [{{ group | replace('-', '_') }}]
 {% for device in devices -%}
+{{ device.name }}
+{% endfor %}
+{% endfor %}
+
+# Grouping by role tag
+{% for group in extra_tags -%}
+[{{ group | replace('role-', '', 1) | replace('-', '_') }}]
+{% for device in manageable_devices.filter(tags__slug=group).distinct() -%}
 {{ device.name }}
 {% endfor %}
 {% endfor %}
