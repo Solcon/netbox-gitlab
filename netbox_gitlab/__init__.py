@@ -13,7 +13,7 @@ class NetBoxGitLabConfig(PluginConfig):
     verbose_name = 'GitLab Ansible export'
     version = VERSION
     author = 'Sander Steffann'
-    author_email = 'sander@isp.solcon.nl'
+    author_email = 'sander.steffann@isp.solcon.nl'
     description = 'GitLab export to Ansible Inventory for NetBox'
     base_url = 'gitlab'
     required_settings = [
