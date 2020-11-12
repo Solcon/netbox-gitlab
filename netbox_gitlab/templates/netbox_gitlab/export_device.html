@@ -27,6 +27,9 @@
         </div>
     </div>
     <h1>{% block title %}GitLab - Export Device{% endblock %}</h1>
+    <p>
+        Exporting to GitLab branch <b>{{ branch }}</b>:
+    </p>
 {% endblock %}
 
 {% block content %}
@@ -55,19 +58,11 @@
     <form method="post" autocomplete="off">
         {% csrf_token %}
 
+        {# Resubmit our original input in case the POST can't be processed #}
+        {{ form.branch.as_hidden }}
+
         {# The full new data to be committed, so that nothing can change after viewing the changes #}
         {{ form.update.as_hidden }}
-
-        <div class="row">
-            <div class="col-md-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading"><strong>GitLab</strong></div>
-                    <div class="panel-body">
-                        {% render_field form.branch %}
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="row">
             <div class="col-md-12 text-right">
@@ -76,22 +71,6 @@
             </div>
         </div>
     </form>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            let branches = [
-                {% for branch in branches %}
-                    "{{ branch }}",
-                {% endfor %}
-            ];
-            $("#id_branch").autocomplete({
-                source: branches,
-                minLength: 0
-            }).on("focus", function () {
-                $(this).autocomplete("search", this.value);
-            });
-        });
-    </script>
 
     {% include 'netbox_gitlab/diff_highlight_line.html' %}
 {% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% load form_helpers %}
+{% load buttons %}
+{% load static %}
+
+{% block header %}
+    <link rel="stylesheet" href="{% static 'netbox_gitlab/style.css' %}">
+
+    <div class="row noprint">
+        <div class="col-md-12">
+            <ol class="breadcrumb">
+                {% if device %}
+                    <li><a href="{% url 'dcim:site' slug=device.site.slug %}">{{ device.site }}</a></li>
+                    {% if device.rack %}
+                        <li><a href="{% url 'dcim:rack_list' %}?site={{ device.site.slug }}">Racks</a></li>
+                        <li><a href="{% url 'dcim:rack' pk=device.rack.pk %}">{{ device.rack }}</a></li>
+                    {% endif %}
+                    {% if device.parent_bay %}
+                        <li>
+                            <a href="{% url 'dcim:device' pk=device.parent_bay.device.pk %}">{{ device.parent_bay.device }}</a>
+                        </li>
+                        <li>{{ device.parent_bay }}</li>
+                    {% endif %}
+                    <li><a href="{% url 'dcim:device' pk=device.pk %}">{{ device }}</a></li>
+                {% endif %}
+                <li>GitLab - Export {{ export_type }}</li>
+            </ol>
+        </div>
+    </div>
+    <h1>{% block title %}GitLab - Export {{ export_type }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    {% if form.non_field_errors %}
+        <div class="panel panel-danger">
+            <div class="panel-heading"><strong>Errors</strong></div>
+            <div class="panel-body">
+                {{ form.non_field_errors }}
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="post" autocomplete="off">
+        {% csrf_token %}
+
+        {# Resubmit our original input in case the POST can't be processed #}
+        {{ form.pk.as_hidden }}
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>GitLab</strong></div>
+                    <div class="panel-body">
+                        {% render_field form.branch %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 text-right">
+                <button type="submit" class="btn btn-primary">View diff</button>
+                <a href="{{ return_url }}" class="btn btn-default">Cancel</a>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let branches = [
+                {% for branch in branches %}
+                    "{{ branch }}",
+                {% endfor %}
+            ];
+            $("#id_branch").autocomplete({
+                source: branches,
+                minLength: 0
+            }).on("focus", function () {
+                $(this).autocomplete("search", this.value);
+            });
+        });
+    </script>
+
+    {% include 'netbox_gitlab/diff_highlight_line.html' %}
+{% endblock %}

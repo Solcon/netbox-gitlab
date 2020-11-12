@@ -15,3 +15,16 @@ class HTML5RegexField(RegexField):
         if hasattr(self, '_regex'):
             attrs['pattern'] = self._regex.pattern
         return attrs
+
+
+class BranchNameField(HTML5RegexField):
+    def __init__(self, **kwargs):
+        params = {
+            'label': 'GitLab Branch',
+            'regex': '[a-z0-9]+([_-][a-z0-9]+)*',
+            'min_length': 3,
+            'max_length': 50,
+            'help_text': 'Choose an existing branch or create a new one'
+        }
+        params.update(**kwargs)
+        super().__init__(**params)

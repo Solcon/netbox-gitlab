@@ -349,6 +349,15 @@ class GitLabCommitMixin(GitLabMixin):
                     pass
                 else:
                     raise
+        else:
+            # See if there is a merge request for this branch
+            merge_reqs = self.project.mergerequests.list(
+                state='opened',
+                source_branch=branch,
+                target_branch=base_branch,
+            )
+            if len(merge_reqs) == 1:
+                merge_req = merge_reqs[0]
 
         return len(gitlab_data['actions']), merge_req
 
