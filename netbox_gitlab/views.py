@@ -44,7 +44,7 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
 
         branch = request.POST['branch'] \
             if self.branch_exists(str(request.POST['branch'])) \
-            else self.config['master_branch']
+            else self.config['main_branch']
         gitlab_inventory = self.get_gitlab_inventory(branch) or ''
         netbox_inventory = generate_inventory()
         if not netbox_inventory:
@@ -134,6 +134,7 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
 
     def show_diff(self, request: HttpRequest, base_device: Device, form: GitLabCommitDeviceForm = None) -> HttpResponse:
         # Get all the relevant devices
+        # Still called "master" to maintain consistency with NetBox
         master, devices = expand_virtual_chassis(base_device)
 
         # If we don't have a GitLab project we can't do anything
@@ -143,7 +144,7 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
 
         branch = request.POST['branch'] \
             if self.branch_exists(str(request.POST['branch'])) \
-            else self.config['master_branch']
+            else self.config['main_branch']
         gitlab_devices = {device.name: self.get_gitlab_device(branch, device)
                           for device in devices}
 
@@ -269,7 +270,7 @@ class ExportInterfacesView(GitLabCommitMixin, PermissionRequiredMixin, GetReturn
         # Prepare a new update
         branch = request.POST['branch'] \
             if self.branch_exists(str(request.POST['branch'])) \
-            else self.config['master_branch']
+            else self.config['main_branch']
         gitlab_data = {device.name: self.get_gitlab_interfaces(branch, device) for device in devices}
         gitlab_interfaces = {device_name: extract_interfaces(device_interfaces)
                              for device_name, device_interfaces in gitlab_data.items()}

@@ -22,7 +22,7 @@ class NetBoxGitLabConfig(PluginConfig):
         'project_path',
     ]
     default_settings = {
-        'master_branch': 'master',
+        'main_branch': 'main',
         'ssl_verify': True,
 
         'inventory_file': 'hosts.ini',

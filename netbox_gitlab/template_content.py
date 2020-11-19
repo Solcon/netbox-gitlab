@@ -24,6 +24,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
 
     @cached_property
     def device_data(self):
+        # Still called "master" to maintain consistency with NetBox
         master, devices = expand_virtual_chassis(self.device)
         netbox_devices = generate_devices(devices)
 
@@ -40,7 +41,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
                 and netbox_devices[self.device.name] is False:
             return ''
 
-        branch = self.config['master_branch']
+        branch = self.config['main_branch']
         gitlab_interfaces_data = self.get_gitlab_interfaces(branch, self.device)
         gitlab_interfaces = extract_interfaces(gitlab_interfaces_data) or {}
 
@@ -99,7 +100,7 @@ class SyncInfo(GitLabMixin, PluginTemplateExtension):
                 or netbox_devices[self.device.name] is False:
             return ''
 
-        branch = self.config['master_branch']
+        branch = self.config['main_branch']
         gitlab_devices = {device.name: self.get_gitlab_device(branch, device)
                           for device in devices}
 

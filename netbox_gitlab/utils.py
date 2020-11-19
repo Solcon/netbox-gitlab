@@ -141,6 +141,7 @@ def expand_virtual_chassis(device: Device) -> Tuple[Optional[Device], List[Devic
     devices = []
 
     # Start with a single device, and assume it's its own master
+    # Still called "master" to maintain consistency with NetBox
     master = device
     devices.append(device)
 
@@ -279,7 +280,7 @@ class GitLabCommitMixin(GitLabMixin):
         self.commit_files[filename] = content
 
     def commit(self, user, branch: str) -> Tuple[int, Optional[ProjectMergeRequest]]:
-        base_branch = self.config['master_branch']
+        base_branch = self.config['main_branch']
         author_name = "{user.first_name} {user.last_name}".format(user=user).strip() or user.username
         author_email = user.email
 
