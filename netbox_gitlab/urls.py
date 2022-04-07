@@ -1,8 +1,11 @@
 from django.urls import path
 
-from netbox_gitlab.views import ExportDeviceView, ExportInterfacesView, ExportInventoryView
+from netbox_gitlab.views import ExportAllView, ExportDeviceView, ExportInterfacesView, ExportInventoryView
 
 urlpatterns = [
+    path(route='export-all/',
+         view=ExportAllView.as_view(),
+         name='export-all'),
     path(route='export-inventory/',
          view=ExportInventoryView.as_view(),
          name='export-inventory'),

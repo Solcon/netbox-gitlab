@@ -6,6 +6,14 @@ menu_items = (
         link_text='Export inventory',
         permissions=[
             'netbox_gitlab.export_device',
-        ]
+        ],
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_gitlab:export-all',
+        link_text='Export everything',
+        permissions=[
+            'netbox_gitlab.export_device',
+            'netbox_gitlab.export_interface',
+        ],
     ),
 )

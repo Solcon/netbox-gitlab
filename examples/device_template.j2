@@ -11,7 +11,7 @@
                     "ansible_host": "{{ device.primary_ip.address.ip }}",
                 {% endif %}
 
-                {% set ansible_user=device.custom_field_values.filter(field__name='management_user').first() %}
+                {% set ansible_user=device.cf['management_user'].first() %}
                 {% if ansible_user %}
                     "ansible_user": "{{ ansible_user.value }}",
                 {% endif %}
@@ -87,7 +87,7 @@
                     {% endfor %}
                 ],
 
-                {% set ospf_area = device.custom_field_values.filter(field__name='ospf_area').first() %}
+                {% set ospf_area = device.cf['ospf_area'].first() %}
                 {% if ospf_area %}
                     "ospf_area": "{{ ospf_area.value }}",
                 {% endif %}

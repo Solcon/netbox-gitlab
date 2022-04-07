@@ -102,8 +102,8 @@ def generate_devices(devices: Iterable[Device]):
 
 
 def generate_device_interfaces(device: Device):
-    generate_missing_traces(device.vc_interfaces.all())
-    interfaces = device.vc_interfaces.prefetch_related(
+    generate_missing_traces(device.vc_interfaces())
+    interfaces = device.vc_interfaces().prefetch_related(
         *settings.PLUGINS_CONFIG['netbox_gitlab']['interfaces_prefetch']
     )
     return generate_interfaces(interfaces)

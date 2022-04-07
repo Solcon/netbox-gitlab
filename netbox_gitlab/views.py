@@ -12,12 +12,123 @@ from django.utils.safestring import mark_safe
 from django.views import View
 
 from dcim.models import Device, Interface
-from netbox_gitlab.forms import (GitLabBranchForm, GitLabBranchInterfacesForm, GitLabCommitDeviceForm,
-                                 GitLabCommitInterfacesForm,
-                                 GitLabCommitInventoryForm)
+from netbox_gitlab.forms import (GitLabBranchForm, GitLabBranchInterfacesForm, GitLabCommitForm,
+                                 GitLabCommitInterfacesForm)
 from netbox_gitlab.utils import (GitLabCommitMixin, GitLabDumper, expand_virtual_chassis, extract_interfaces,
                                  generate_devices, generate_interfaces, generate_inventory, make_diff, make_diffs)
 from utilities.views import GetReturnURLMixin
+
+
+class ExportAllView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLMixin, View):
+    permission_required = (
+        'netbox_gitlab.export_device',
+        'netbox_gitlab.export_interface',
+    )
+
+    def ask_branch(self, request) -> HttpResponse:
+        # Collect all the branches we can push to
+        branches = [branch.name for branch in self.project.branches.list() if branch.can_push]
+
+        form = GitLabBranchForm()
+
+        return render(request, 'netbox_gitlab/ask_branch.html', {
+            'export_type': 'Inventory',
+            'form': form,
+            'branches': branches,
+            'return_url': self.get_return_url(request),
+        })
+
+    def show_diff(self, request: HttpRequest, form: GitLabCommitForm) -> HttpResponse:
+        # If we don't have a GitLab project we can't do anything
+        if not self.project:
+            messages.error(self.request, f"GitLab server error: {self.gitlab_error}")
+            return redirect('home')
+
+        branch = request.POST['branch'] \
+            if self.branch_exists(str(request.POST['branch'])) \
+            else self.config['main_branch']
+
+        # We start with all devices, then see which devices have data
+        devices_data = generate_devices(Device.objects.all())
+        devices_data = {name: data for name, data in devices_data.items() if data}
+
+        # For each device we get the interfaces
+        devices_interfaces_data = {}
+        for device_name in devices_data.keys():
+            # Get all the relevant devices
+            base_device = Device.objects.get(name=device_name)
+            master, devices = expand_virtual_chassis(base_device)
+
+            # Get all the relevant interfaces
+            interfaces = Interface.objects.filter(device__in=devices).order_by('_name')
+
+            devices_interfaces_data[device_name] = {interface.name: interface for interface in interfaces}
+
+        return HttpResponse(yaml.dump(devices_interfaces_data), content_type='text/plain')
+
+        gitlab_inventory = self.get_gitlab_inventory(branch) or ''
+        netbox_inventory = generate_inventory()
+        if not netbox_inventory:
+            return redirect('home')
+
+        diff = make_diff(
+            gitlab_data=gitlab_inventory,
+            netbox_data=netbox_inventory
+        )
+
+        # Collect all the branches we can push to
+        branches = [branch.name for branch in self.project.branches.list() if branch.can_push]
+
+        update = signing.dumps(netbox_inventory, salt='netbox_gitlab.inventory', compress=True)
+
+        # Override the bound data
+        form.data['update'] = update
+
+        return render(request, 'netbox_gitlab/export_inventory.html', {
+            'branch': request.POST['branch'],
+            'diff': diff,
+            'form': form,
+            'branches': branches,
+            'return_url': self.get_return_url(request),
+        })
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        return self.ask_branch(request)
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        # Check is branch name is valid
+        branch_form = GitLabBranchForm(data=request.POST)
+        if not branch_form.is_valid():
+            return self.ask_branch(request)
+
+        form = GitLabCommitForm(data=copy.copy(request.POST))
+        if not form.is_valid():
+            return self.show_diff(request, form)
+
+        try:
+            new_gitlab_data = signing.loads(form.cleaned_data['update'], salt='netbox_gitlab.inventory', max_age=900)
+        except SignatureExpired:
+            messages.warning(request, "Update expired, please submit again")
+            return self.show_diff(request, form)
+
+        # # We appear to have new gitlab data!
+        # filename = self.config['inventory_file']
+        # self.gitlab_add_file(filename, new_gitlab_data)
+        #
+        # branch = form.cleaned_data['branch']
+        # changes, merge_req = self.commit(user=self.request.user, branch=branch)
+        #
+        # if not changes:
+        #     messages.warning(self.request, f"Nothing has changed (changes already committed to branch {branch}?)")
+        # elif merge_req:
+        #     messages.success(self.request, mark_safe(
+        #         f'Inventory changed in branch {branch}, '
+        #         f'<a target="_blank" href="{merge_req.web_url}">merge request {merge_req.iid}</a> created'
+        #     ))
+        # else:
+        #     messages.success(self.request, f"Inventory changed in branch {branch}")
+
+        return redirect(self.get_return_url(request))
 
 
 class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLMixin, View):
@@ -36,7 +147,7 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
             'return_url': self.get_return_url(request),
         })
 
-    def show_diff(self, request: HttpRequest, form: GitLabCommitInventoryForm = None) -> HttpResponse:
+    def show_diff(self, request: HttpRequest, form: GitLabCommitForm) -> HttpResponse:
         # If we don't have a GitLab project we can't do anything
         if not self.project:
             messages.error(self.request, f"GitLab server error: {self.gitlab_error}")
@@ -60,13 +171,8 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
 
         update = signing.dumps(netbox_inventory, salt='netbox_gitlab.inventory', compress=True)
 
-        if not form:
-            form = GitLabCommitInventoryForm(initial={
-                'update': update,
-            })
-        else:
-            # Override the bound data
-            form.data['update'] = update
+        # Override the bound data
+        form.data['update'] = update
 
         return render(request, 'netbox_gitlab/export_inventory.html', {
             'branch': request.POST['branch'],
@@ -85,7 +191,7 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
         if not branch_form.is_valid():
             return self.ask_branch(request)
 
-        form = GitLabCommitInventoryForm(data=copy.copy(request.POST))
+        form = GitLabCommitForm(data=copy.copy(request.POST))
         if not form.is_valid():
             return self.show_diff(request, form)
 
@@ -118,6 +224,9 @@ class ExportInventoryView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnU
 class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLMixin, View):
     permission_required = 'netbox_gitlab.export_device'
 
+    def say_hello(request):
+        return HttpResponse('Hello World')
+        
     def ask_branch(self, request, device: Device) -> HttpResponse:
         # Collect all the branches we can push to
         branches = [branch.name for branch in self.project.branches.list() if branch.can_push]
@@ -132,7 +241,7 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
             'return_url': self.get_return_url(request, device),
         })
 
-    def show_diff(self, request: HttpRequest, base_device: Device, form: GitLabCommitDeviceForm = None) -> HttpResponse:
+    def show_diff(self, request: HttpRequest, base_device: Device, form: GitLabCommitForm) -> HttpResponse:
         # Get all the relevant devices
         # Still called "master" to maintain consistency with NetBox
         master, devices = expand_virtual_chassis(base_device)
@@ -164,13 +273,8 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
 
         update = signing.dumps(new_gitlab_data, salt='netbox_gitlab.devices', compress=True)
 
-        if not form:
-            form = GitLabCommitDeviceForm(initial={
-                'update': update,
-            })
-        else:
-            # Override the bound data
-            form.data['update'] = update
+        # Override the bound data
+        form.data['update'] = update
 
         return render(request, 'netbox_gitlab/export_device.html', {
             'branch': request.POST['branch'],
@@ -193,7 +297,7 @@ class ExportDeviceView(GitLabCommitMixin, PermissionRequiredMixin, GetReturnURLM
             return self.ask_branch(request, base_device)
 
         # Check if the rest of the form is valid
-        form = GitLabCommitDeviceForm(data=copy.copy(request.POST))
+        form = GitLabCommitForm(data=copy.copy(request.POST))
         if not form.is_valid():
             return self.show_diff(request, base_device, form)
 

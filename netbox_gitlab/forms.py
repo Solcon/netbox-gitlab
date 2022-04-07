@@ -9,12 +9,7 @@ class GitLabBranchForm(BootstrapMixin, forms.Form):
     branch = BranchNameField()
 
 
-class GitLabCommitInventoryForm(BootstrapMixin, forms.Form):
-    branch = BranchNameField()
-    update = forms.CharField()
-
-
-class GitLabCommitDeviceForm(BootstrapMixin, forms.Form):
+class GitLabCommitForm(BootstrapMixin, forms.Form):
     branch = BranchNameField()
     update = forms.CharField()
 
